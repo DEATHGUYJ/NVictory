@@ -3,7 +3,8 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, a-publier]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -51,16 +52,51 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo test --workspace --all-features --locked -- --test-threads=1
 
+  scripts:
+    name: Launcher scripts
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      # Windows PowerShell 5.1, what the launcher runs under on a plain Windows PC.
+      - name: Parse with Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $bad = 0
+          foreach ($f in Get-ChildItem scripts -Filter *.ps1) {
+            $tokens = $null; $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$tokens, [ref]$errors)
+            foreach ($e in $errors) { Write-Host "$($f.Name):$($e.Extent.StartLineNumber): $($e.Message)"; $bad++ }
+          }
+          if ($bad) { exit 1 }
+      - name: PSScriptAnalyzer (errors only)
+        shell: pwsh
+        run: |
+          if (-not (Get-Module -ListAvailable PSScriptAnalyzer)) {
+            Install-Module PSScriptAnalyzer -Scope CurrentUser -Force
+          }
+          $found = Invoke-ScriptAnalyzer -Path scripts -Recurse -Severity Error
+          $found | Format-Table -AutoSize | Out-String -Width 200 | Write-Host
+          if ($found) { exit 1 }
+      - name: Load Settings.ps1 and read its defaults
+        shell: powershell
+        run: |
+          . .\scripts\Settings.ps1
+          $d = Get-LauncherDefaults
+          if (-not $d.Contains('console')) { Write-Host 'defaults have no console'; exit 1 }
+          $d | Format-Table -AutoSize | Out-String | Write-Host
+
   check:
-    needs: [clippy, test-default, test-diagnostics]
+    needs: [clippy, test-default, test-diagnostics, scripts]
     if: always()
     runs-on: windows-latest
     timeout-minutes: 60
     steps:
-      - name: Require all three jobs to pass
+      - name: Require all jobs to pass
         run: |
           if ('${{ needs.clippy.result }}' -ne 'success' -or
               '${{ needs.test-default.result }}' -ne 'success' -or
-              '${{ needs.test-diagnostics.result }}' -ne 'success') {
+              '${{ needs.test-diagnostics.result }}' -ne 'success' -or
+              '${{ needs.scripts.result }}' -ne 'success') {
             exit 1
           }
