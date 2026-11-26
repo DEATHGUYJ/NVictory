@@ -97,7 +97,7 @@ points, change them with `-More @{NAME='value'}`):
 | Setting | Value | Why |
 |---|---|---|
 | `VICTORY_D3D12_ADAPTER` | `NVIDIA` | picks the 3080 on a PC with a second adapter (such as an iGPU) |
-| `VICTORY_THIN_THREADS`, `VICTORY_JOIN_PARTS` | one third of the PC's threads, 2 to 8 (4 on your 12; 8 on the AMD fork's 24) | set for every card, not under `-Safe` |
+| `VICTORY_THIN`, `VICTORY_JOIN_PARTS` | `0` (off) | another NVIDIA fork (DoubleGhosty/cool_fox) found head skin not drawn with `THIN` and repeated video frames with `JOIN_PARTS`. `-Async` turns both on, with one third of the PC's threads (4 on your 12) |
 | `VICTORY_LEVELS_ON_DEMAND` | `1` | the card holds only the texture levels the title holds; about 3 GB saved in the 4070's run, which had no device loss |
 | `VICTORY_RESIDENCY` | `1` | the fork's low-RAM mode (also on by itself at 32 GiB of RAM or less; `0` turns it off): finished command lists and retired objects wait 16 submissions, not 64, before they are freed (`VICTORY_BURY_LAG`; the lists' allocators were about 9 GB in the AMD run, how much this saves is not measured); idle scratch and staging blocks are not kept for five minutes; texture prefetch is cut to 128 MiB a frame and to 64 / 16 MiB when free RAM or commit runs low |
 | `VICTORY_WINDOW_BUDGET_MB` | `4096` | caps the loose title-window copies (about 7 GB uncapped); the cap is halved when the process holds half the RAM, which on 32 GB will be most of the time |

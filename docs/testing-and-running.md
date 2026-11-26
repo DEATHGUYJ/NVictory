@@ -89,6 +89,7 @@ and wide-indirect boxes). Choices are saved in `%LOCALAPPDATA%\victory\launcher.
 | 3 | add `-More @{VICTORY_PANEL='1'}` | Numbers on the picture: frame cost and where it goes. |
 | 4 | `-InPlaceProbe`, then `-InPlace` only if the probe passes | Whether this driver can use title memory in place (see README). |
 | 5 | `-WideIndirect` only if tiles are missing at the bottom of the frame | Untested on NVIDIA; can lose the device. |
+| 5b | `-Async` | Faster submission. Check faces and skin, and that videos do not repeat frames. |
 | 6 | `-RayTracing` last | About a third slower; leave off at first. |
 
 For less memory use, choose "Series S" or the **32 GB PC preset** in the settings
