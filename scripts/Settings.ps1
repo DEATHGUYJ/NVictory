@@ -9,7 +9,6 @@ function Get-LauncherConfigPath {
 function Get-LauncherDefaults {
     [ordered]@{
         exe          = ''
-        gpu          = 'auto'     # auto, amd, nvidia
         console      = 'series-x' # series-x, series-s
         output       = 'default'  # default or one of the title's display modes
         fps          = '30'       # 30 (title default), 45, 60
@@ -54,9 +53,6 @@ function Show-LauncherSettings {
 
     # key, label, the values saved, the names shown
     $rows = @(
-        @{ key = 'gpu'; label = 'Graphics card profile'
-           vals = @('auto', 'amd', 'nvidia')
-           names = @('Automatic (from the adapters found)', 'AMD (tuned on an RX 7900 XTX)', 'NVIDIA (starting points for an RTX 3080 12 GB)') },
         @{ key = 'console'; label = 'Console profile'
            vals = @('series-x', 'series-s')
            names = @('Series X (full detail)', 'Series S (1080p, a few ms faster, softer, less RAM)') },

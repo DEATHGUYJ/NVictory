@@ -3,8 +3,11 @@
 A fork of [VIctory](https://github.com/Marvisak/VIctory), a compatibility layer
 that runs an Xbox Series title natively on Windows from files the user supplies.
 This fork is set up for **one PC: RTX 3080 12 GB, Ryzen 5 5600T (6 cores, 12
-threads), 32 GB RAM.** It started from an RX 7900 XTX fork; that card's numbers
-are kept below, marked as such.
+threads), 32 GB RAM.** It is NVIDIA-only: the AMD vendor checks, the AMD-only
+FSR 4K mode and the AMD launcher profile are gone, and the launcher always asks
+for the NVIDIA adapter. It started from an RX 7900 XTX fork; that card's numbers
+are kept below, marked as such. (The console's own AMD GPU code, which the
+translator reads, stays: it is the game's, not the host's.)
 
 ## Status: not yet run on the 3080
 
@@ -34,8 +37,7 @@ about 1 ms a frame, they would not.
 | Direct3D 12 SM 6.6, mesh shaders, DXR | yes (Ampere); the title's requirements are met |
 | Waves of 32 | handled: console wave64 compute is translated for 32 lanes (`victory-gpu/src/host.rs`) |
 | Heap cap of 1,000,000 views, 16-bit colour formats, R9G9B9E5 | handled by clamps and stand-in formats (`descriptor/host.rs`, `resource.rs`) |
-| Indirect dispatches over 65,535 groups | **cut off** unless `-WideIndirect` (below): the clamp only widens on AMD, so a few thousand of the picture's lowest tiles can go missing |
-| PC FSR 4 (`-Fsr4K`) | **not available**: it needs an AMD card and AMD's signed DLL; the launcher ignores it on this profile |
+| Indirect dispatches over 65,535 groups | **cut off** unless `-WideIndirect` (below): a few thousand of the picture's lowest tiles can go missing |
 | 12 GB of VRAM | the AMD run used 10.5 GB, the 4070's run sat at 85-99 % of its budget: texture churn likely |
 | 32 GB of RAM | **short**: the AMD run used about 30 GB of private memory and the notes in `docs/findings.md` count 40-46 GB (lists' allocators 9, windows 7, uploads 4). Set a large page file (see below) |
 | 6 cores / 12 threads | the AMD run had 24 threads. Thread counts that follow the CPU scale down by themselves; the launcher lowers `VICTORY_THIN_THREADS` and `VICTORY_JOIN_PARTS` to 4. The frame is limited by the one thread that submits (about 40 ms there), so single-core speed matters most |
@@ -107,7 +109,7 @@ frame, these are the first things to try:
   the lag exists because of device losses from memory freed too early, so lower it only to test)
   and `VICTORY_KEEP_SNAPSHOTS_MB=128`, for less RAM; `VICTORY_MEMORY_MAP=1` lists where it goes.
 - `-WideIndirect` (sets `VICTORY_INDIRECT_WIDE=force`) lets the card try indirect
-  dispatches of up to about a million groups, as an AMD card does. D3D12 leaves
+  dispatches of up to about a million groups. D3D12 leaves
   counts past 65,535 undefined, so an NVIDIA card may clamp them, wrap them or lose
   the device. It is off by default for that reason. Try it only if tiles are missing.
 - `VICTORY_OUTPUT=1920x1080` or `--console series-s` (see the tables below) for
@@ -182,7 +184,7 @@ i7-14700KF, 32 GB ([docs/README-fxceless.md](docs/README-fxceless.md)).
 | `VICTORY_FRAME_INTERVAL_MS=16.667` | Lets the title go above 30 fps (menus and videos reach 60; the game's clock stays right) |
 | `VICTORY_AMBIENT_SETTLE` | How fast light settles after walking indoors (on by default, `250,3`; `0` turns it off) |
 | `VICTORY_TEXTURE_STORE=1` | Converted textures kept between runs (about 8 ms a frame for now: off) |
-| `VICTORY_INDIRECT_WIDE` | `0`: indirect dispatches cut at 65,535 groups everywhere; `force`: let non-AMD cards try wide counts |
+| `VICTORY_INDIRECT_WIDE` | `0`: indirect dispatches cut at 65,535 groups; `force`: let the card try wide counts (untested) |
 
 What is known to be wrong:
 
