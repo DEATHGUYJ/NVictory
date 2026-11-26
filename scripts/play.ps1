@@ -38,7 +38,8 @@ if ($Gpu -eq 'rtx3080') {
         $settings.VICTORY_JOIN_PARTS = '4'     # 8 above, sized for 24 threads
     }
     $settings.VICTORY_LEVELS_ON_DEMAND = '1'   # card memory only for texture levels the title holds (about 3 GB saved in the 12 GB RTX 4070 test)
-    $settings.VICTORY_WINDOW_BUDGET_MB = '2048' # caps loose title-window copies (about 7 GB uncapped)
+    $settings.VICTORY_RESIDENCY = '1'          # low-RAM budgets: list retirement lag 16 not 64, no 5-minute scratch cache, texture prefetch under pressure, idle staging let go
+    $settings.VICTORY_WINDOW_BUDGET_MB = '4096' # caps loose title-window copies (about 7 GB uncapped); halved in the High RAM band
     if ($WideIndirect) { $settings.VICTORY_INDIRECT_WIDE = 'force' }
     if ($Fsr4K) { Write-Host "-Fsr4K needs an AMD card; ignored on rtx3080."; $Fsr4K = $null }
 }

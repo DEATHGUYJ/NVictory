@@ -64,13 +64,15 @@ points, change them with `-More @{NAME='value'}`):
 | `VICTORY_THIN_THREADS` | `4` (default 8) | 12 threads, not 24; not set under `-Safe` |
 | `VICTORY_JOIN_PARTS` | `4` (default 8) | the same; not set under `-Safe` |
 | `VICTORY_LEVELS_ON_DEMAND` | `1` | the card holds only the texture levels the title holds; about 3 GB saved in the 4070's run, which had no device loss |
-| `VICTORY_WINDOW_BUDGET_MB` | `2048` | caps the loose title-window copies (about 7 GB uncapped) to spare RAM |
+| `VICTORY_RESIDENCY` | `1` | the fork's low-RAM mode (also on by itself at 32 GiB of RAM or less; `0` turns it off): finished command lists and retired objects wait 16 submissions, not 64, before they are freed (`VICTORY_BURY_LAG`; the lists' allocators were about 9 GB in the AMD run, how much this saves is not measured); idle scratch and staging blocks are not kept for five minutes; texture prefetch is cut to 128 MiB a frame and to 64 / 16 MiB when free RAM or commit runs low |
+| `VICTORY_WINDOW_BUDGET_MB` | `4096` | caps the loose title-window copies (about 7 GB uncapped); the cap is halved when the process holds half the RAM, which on 32 GB will be most of the time |
 
 If it runs out of memory or the picture shows missing tiles at the bottom of the
 frame, these are the first things to try:
 
-- `-More @{VICTORY_WINDOW_BUDGET_MB='1024'}`, and `VICTORY_KEEP_SNAPSHOTS_MB=128`,
-  for less RAM; `VICTORY_MEMORY_MAP=1` lists where it goes.
+- `-More @{VICTORY_WINDOW_BUDGET_MB='2048'}`, `VICTORY_BURY_LAG=8` (frees finished lists sooner;
+  the lag exists because of device losses from memory freed too early, so lower it only to test)
+  and `VICTORY_KEEP_SNAPSHOTS_MB=128`, for less RAM; `VICTORY_MEMORY_MAP=1` lists where it goes.
 - `-WideIndirect` (sets `VICTORY_INDIRECT_WIDE=force`) lets the card try indirect
   dispatches of up to about a million groups, as an AMD card does. D3D12 leaves
   counts past 65,535 undefined, so an NVIDIA card may clamp them, wrap them or lose
