@@ -180,6 +180,26 @@ It has not been run on Windows yet. If the log is empty, run `play.ps1` by hand.
 | Slow world frames | Frame time is limited by the one submit thread. Use `VICTORY_PANEL=1` and send the frame account line. |
 | Launcher warns "no NVIDIA adapter" | The fork is NVIDIA-only. Check the driver and Device Manager. |
 
+### Reducing RAM use
+
+The title wants more than 32 GB with the defaults (`docs/findings.md`: command-list allocators about
+9 GB, title-window copies about 7 GB, uploads about 4 GB). None of the figures below is measured on
+this PC. Change one thing per run and compare the peak in Task Manager.
+
+1. **Find out where it goes.** Run once with `-More @{VICTORY_MEMORY_MAP='1'}` and keep the log.
+2. **Cap the window copies.** `-More @{VICTORY_WINDOW_BUDGET_MB='2048'}` (the launcher uses 4096). The
+   memory setting "low" in the settings window does this.
+3. **Smaller picture, lighter profile.** Series S, or `-More @{VICTORY_OUTPUT='1920x1080'}`.
+4. **Free finished lists sooner.** `VICTORY_BURY_LAG=8` and `VICTORY_KEEP_SNAPSHOTS_MB=128`. The lag
+   exists because of device losses from memory freed too early, so test this one on its own.
+5. **Use title memory in place.** `-InPlaceProbe` first, then `-InPlace`. It removes host copies
+   instead of capping them, and is the largest potential saving. Leave it off if the probe fails.
+6. **Keep the page file** at 32-48 GB or more. It does not lower use; it turns a crash into a slowdown.
+
+Ideas that need code changes (not done): pool command-list allocators per frame slot, reuse a fixed
+ring of upload staging buffers, and drop host copies of texture levels that the card already holds.
+Send the `VICTORY_MEMORY_MAP` output before any of these, so the top items are the real ones.
+
 ## 8. Recording one frame and replaying it
 
 To investigate one slow frame without the game, record it in a `diag` build and
