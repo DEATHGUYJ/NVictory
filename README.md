@@ -18,6 +18,15 @@ boots, the second what a frame costs (`VICTORY_PANEL=1` shows it).
 copy of the game. It is not affiliated with or endorsed by the game's developer
 or publisher.
 
+## What to send back after the first run
+
+A `diag` build prints, once a frame batch, a line starting "recording and mapping waits per
+frame": how long host state preludes take to record, and how long changes of title mapping
+and reads of title memory wait for each other (the global remap lock). With the frame
+account line and `VICTORY_MEMORY_MAP=1`, that says whether DexNom/VIctory's parallel
+prelude recording or its per-range remap lock would help this PC. If the waits are under
+about 1 ms a frame, they would not.
+
 ## What the 3080 has and what it does not
 
 | | |

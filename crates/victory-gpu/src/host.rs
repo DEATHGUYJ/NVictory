@@ -7011,6 +7011,8 @@ impl HostList {
         else {
             fail(format_args!("no host list for a state prelude"));
         };
+        #[cfg(feature = "diagnostics")]
+        let recording = std::time::Instant::now();
         // SAFETY: the prelude is not executing (every submission is waited
         // for); the textures are live.
         let recorded = unsafe {
@@ -7034,6 +7036,12 @@ impl HostList {
                 list.Close()
             })
         };
+        #[cfg(feature = "diagnostics")]
+        {
+            use crate::copystat::{C, add};
+            add(C::PreludeRecords, 1);
+            add(C::PreludeUs, recording.elapsed().as_micros() as u64);
+        }
         if let Err(e) = recorded {
             fail(format_args!("a host state prelude did not record ({e})"));
         }
