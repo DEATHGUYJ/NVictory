@@ -117,6 +117,19 @@ what the 3080 will.
 An earlier state of the code (2026-11-25) ran at 2.5-4 fps on an RTX 4070 12 GB,
 i7-14700KF, 32 GB ([docs/README-fxceless.md](docs/README-fxceless.md)).
 
+### Fixes taken from avatarmanz/VIctory-7900XTX (2026-11-26)
+
+- `VICTORY_PORT_CONSTANTS_ORDER` (on by default): indirect draws whose arguments sit in
+  renderer patch 1's in-place memory are prepared one at a time right before they run.
+  Without it, with `VICTORY_PORT_CONSTANTS=1`, trees and palms dropped out for a few frames
+  and lamp-lit rooms swung between too dark and too bright. Needed before the patches below
+  are turned on by default.
+- `VICTORY_AMBIENT_RT=0.7,1.5` (off by default): stand-in for the indirect light with ray
+  tracing, so rooms lit only by bounced light are not black.
+- Their measurements (RX 7900 XTX, 64 GB): Series X 4K drawn at 1440p, ray tracing off,
+  49 ms standing, about 62 ms walking, **45 GB of RAM**; Series S 43 / 64 ms, 37 GB.
+  The 32 GB of this PC is below all of them.
+
 ### Renderer patches (off by default while they are tested)
 
 | Switch | What it does |
