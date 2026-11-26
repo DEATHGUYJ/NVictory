@@ -39,6 +39,8 @@ about 1 ms a frame, they would not.
   title-memory mode behind a probe.
 - **Launcher and settings window** (`scripts\play.ps1`, `scripts\Settings.ps1`): choices are
   saved, and the NVIDIA settings are always applied. Worker counts follow the CPU.
+- **Safer submission defaults on NVIDIA:** `VICTORY_THIN` and `VICTORY_JOIN_PARTS` are off (missing head
+  skin and repeated video frames on NVIDIA in DoubleGhosty/cool_fox); `-Async` turns them on for speed.
 - **Driver watch** (`drvwatch.rs`, from VItoriaBr): NVIDIA's event-log errors (event 153) are
   logged; the first one switches the indirect-window path off for the rest of the run.
   `VICTORY_DRIVER_WATCH=0` turns it off.
@@ -55,7 +57,7 @@ about 1 ms a frame, they would not.
 | Indirect dispatches over 65,535 groups | **cut off** unless `-WideIndirect` (below): a few thousand of the picture's lowest tiles can go missing |
 | 12 GB of VRAM | the AMD run used 10.5 GB, the 4070's run sat at 85-99 % of its budget: texture churn likely |
 | 32 GB of RAM | **short**: the AMD run used about 30 GB of private memory and the notes in `docs/findings.md` count 40-46 GB (lists' allocators 9, windows 7, uploads 4). Set a large page file (see below) |
-| 6 cores / 12 threads | the AMD run had 24 threads. Thread counts that follow the CPU scale down by themselves; the launcher lowers `VICTORY_THIN_THREADS` and `VICTORY_JOIN_PARTS` to 4. The frame is limited by the one thread that submits (about 40 ms there), so single-core speed matters most |
+| 6 cores / 12 threads | the AMD run had 24 threads. Thread counts that follow the CPU scale down by themselves; the launcher leaves `VICTORY_THIN` and `VICTORY_JOIN_PARTS` off on NVIDIA, and `-Async` turns them on with 4 workers. The frame is limited by the one thread that submits (about 40 ms there), so single-core speed matters most |
 
 ## How to run it
 

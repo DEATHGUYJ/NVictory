@@ -179,6 +179,8 @@ It has not been run on Windows yet. If the log is empty, run `play.ps1` by hand.
 | Stutter for minutes on a new build | Run `victory warm --used`; the first run after a driver or build change builds pipelines. |
 | Wrong GPU used | The launcher asks for the NVIDIA adapter. On a PC with an iGPU, check the log's adapter line. |
 | Slow world frames | Frame time is limited by the one submit thread. Use `VICTORY_PANEL=1` and send the frame account line. |
+| Faces or skin missing, or a video repeats frames | Run without `-Async` (the default). These faults are known with `VICTORY_THIN` and `VICTORY_JOIN_PARTS` on NVIDIA. |
+| Slow but the picture is right | Try `-Async` and check faces and videos again. |
 | Launcher warns "no NVIDIA adapter" | The fork is NVIDIA-only. Check the driver and Device Manager. |
 
 ### Reducing RAM use
