@@ -31,6 +31,7 @@ mod cores;
 pub mod descriptor;
 pub mod device;
 #[cfg(windows)]
+mod drvwatch;
 mod draw;
 pub mod dxgi;
 #[cfg(windows)]
