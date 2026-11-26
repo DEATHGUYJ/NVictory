@@ -2,13 +2,10 @@
 #   scripts\play.ps1 -Exe <path of your own copy's executable>
 # -Safe         without the newer, faster ways (the first thing to try when something is wrong)
 # -RayTracing   the title's own ray-traced indirect light: lit interiors, about a third slower
-# -Fsr4K        PC FidelityFX 4.1.2 at 3840x2160 (quality, balanced or performance)
 # -Build        target\diag (the default, the build all measurements are of) or target\release
-# -Gpu          auto (the default: nvidia if an NVIDIA adapter is present, else amd), amd (tuned on an RX 7900 XTX),
-#               nvidia (starting points for an RTX 3080 12 GB, Ryzen 5 5600T, 32 GB RAM); rtx3080 is the same as nvidia
-# -WideIndirect (nvidia) lets the card try indirect dispatches past 65,535 groups: untested, may lose the device
+# -WideIndirect lets the card try indirect dispatches past 65,535 groups: untested, may lose the device
 # -InPlaceProbe asks this PC's driver whether title memory can be opened as card memory (VICTORY_INPLACE_PROBE=1); read the log
-# -InPlace      (nvidia) title memory used in place, not copied (VICTORY_INPLACE=1, 2 GB at most): off until the probe passes
+# -InPlace      title memory used in place, not copied (VICTORY_INPLACE=1, 2 GB at most): off until the probe passes
 # -Settings     shows the settings window (also shown on the first run); choices are saved and used by later runs
 # -NoDialog     never shows it: command-line switches and the saved choices (or the defaults) only
 # -More         other settings: -More @{VICTORY_PANEL='1'}
@@ -19,9 +16,7 @@ param(
     [switch]$NoDialog,
     [switch]$Safe,
     [switch]$RayTracing,
-    [ValidateSet('quality', 'balanced', 'performance')][string]$Fsr4K,
     [ValidateSet('diag', 'release')][string]$Build = 'diag',
-    [ValidateSet('auto', 'amd', 'nvidia', 'rtx3080')][string]$Gpu = 'auto',
     [switch]$WideIndirect,
     [switch]$InPlaceProbe,
     [switch]$InPlace,
@@ -43,19 +38,15 @@ if ($cfg.rayTracing -ne 'off') { $RayTracing = $true }
 if ($cfg.inPlace) { $InPlace = $true }
 if ($cfg.wideIndirect) { $WideIndirect = $true }
 if (-not $PSBoundParameters.ContainsKey('Build')) { $Build = [string]$cfg.build }
-if (-not $PSBoundParameters.ContainsKey('Gpu')) { $Gpu = [string]$cfg.gpu }
 $settings = @{
     VICTORY_TEXTURE_NO_WAIT = '1'; VICTORY_RELAY = '2'; VICTORY_WIDE_BACK = '1'; VICTORY_CARD_REHASH_RUNS = '1'
     VICTORY_JOIN_COPIES = '1'; VICTORY_INDIRECT_WINDOW = '1'; VICTORY_RELAY_COPY = '1'; VICTORY_CARD_STEPS = '2'
     VICTORY_INDIRECT_BATCH = '2'; VICTORY_MAP_THREADS = '1'; VICTORY_TITLE_PRIORITIES = '0'; VICTORY_CARD_AWAKE = '1'
     VICTORY_SHOW_AFTER = '1'; VICTORY_AMBIENT = '0.8'; VICTORY_D3D12_DRED = 'light'
 }
-if ($Gpu -eq 'auto') {
-    $names = @(Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue | ForEach-Object Name)
-    $Gpu = if ($names -match 'NVIDIA') { 'nvidia' } else { 'amd' }
-    Write-Host "Gpu profile: $Gpu (from: $($names -join ', '))"
-}
-if ($Gpu -eq 'rtx3080') { $Gpu = 'nvidia' }
+# This fork is for NVIDIA cards only: it asks for the NVIDIA adapter, and says so if there is none.
+$names = @(Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue | ForEach-Object Name)
+if (-not ($names -match 'NVIDIA')) { Write-Host "Warning: no NVIDIA adapter found (seen: $($names -join ', ')). This fork is made for NVIDIA cards only." }
 # The title's own threads and ours share the CPU: the settings below were made for 24 threads (8 and 8).
 $workers = [Math]::Max(2, [Math]::Min(8, [int][Math]::Floor([Environment]::ProcessorCount / 3)))
 if ($Safe) {
@@ -66,17 +57,13 @@ if ($Safe) {
 }
 if ($RayTracing) { $settings.VICTORY_BVH_BUILDER = '1' }
 if ($InPlaceProbe) { $settings.VICTORY_INPLACE_PROBE = '1' }
-if ($Gpu -eq 'nvidia') {
-    # Starting points for 12 GB of VRAM and 32 GB of RAM; none of these is measured yet.
-    $settings.VICTORY_D3D12_ADAPTER = 'NVIDIA'
-    if ($InPlace) { $settings.VICTORY_INPLACE = '1'; $settings.VICTORY_INPLACE_MB = '2048' }
-    $settings.VICTORY_LEVELS_ON_DEMAND = '1'   # card memory only for texture levels the title holds (about 3 GB saved in the 12 GB RTX 4070 test)
-    $settings.VICTORY_RESIDENCY = '1'          # low-RAM budgets: list retirement lag 16 not 64, no 5-minute scratch cache, texture prefetch under pressure, idle staging let go
-    $settings.VICTORY_WINDOW_BUDGET_MB = '4096' # caps loose title-window copies (about 7 GB uncapped); halved in the High RAM band
-    if ($WideIndirect) { $settings.VICTORY_INDIRECT_WIDE = 'force' }
-    if ($Fsr4K) { Write-Host "-Fsr4K needs an AMD card; ignored on the nvidia profile."; $Fsr4K = $null }
-}
-if ($Fsr4K) { $settings.VICTORY_FSR_4K = $Fsr4K.ToLowerInvariant() }
+# Starting points for 12 GB of VRAM and 32 GB of RAM; none of these is measured yet.
+$settings.VICTORY_D3D12_ADAPTER = 'NVIDIA'
+if ($InPlace) { $settings.VICTORY_INPLACE = '1'; $settings.VICTORY_INPLACE_MB = '2048' }
+$settings.VICTORY_LEVELS_ON_DEMAND = '1'   # card memory only for texture levels the title holds (about 3 GB saved in the 12 GB RTX 4070 test)
+$settings.VICTORY_RESIDENCY = '1'          # low-RAM budgets: list retirement lag 16 not 64, no 5-minute scratch cache, texture prefetch under pressure, idle staging let go
+$settings.VICTORY_WINDOW_BUDGET_MB = '4096' # caps loose title-window copies (about 7 GB uncapped); halved in the High RAM band
+if ($WideIndirect) { $settings.VICTORY_INDIRECT_WIDE = 'force' }
 # The settings window's choices.
 if ($cfg.output -ne 'default') { $settings.VICTORY_OUTPUT = [string]$cfg.output }
 if ($cfg.fps -eq '60') { $settings.VICTORY_FRAME_INTERVAL_MS = '16.667' }
@@ -91,7 +78,7 @@ $victory = Join-Path $PSScriptRoot "..\target\$Build\victory.exe"
 if (-not (Test-Path $victory)) { Write-Host "No $victory. Build it first (README.md)."; exit 1 }
 if (-not $Exe -or -not (Test-Path $Exe)) { Write-Host "No game executable ($Exe). Run with -Settings to choose it."; exit 1 }
 # (Other settings left over in this window go; where your files are stays.)
-$paths = 'VICTORY_CONFIG', 'VICTORY_GAME_DIR', 'VICTORY_CACHE_DIR', 'VICTORY_DATA_DIR', 'VICTORY_FIDELITYFX_DIR'
+$paths = 'VICTORY_CONFIG', 'VICTORY_GAME_DIR', 'VICTORY_CACHE_DIR', 'VICTORY_DATA_DIR'
 $inherited = @(Get-ChildItem Env:VICTORY_* | Where-Object { $_.Name -notin $paths })
 foreach ($entry in $inherited) { Remove-Item "Env:$($entry.Name)" }
 foreach ($k in $settings.Keys) { Set-Item "Env:$k" $settings[$k] }

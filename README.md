@@ -1,14 +1,19 @@
 # VIctory on an RTX 3080 12 GB
 
+**Quick links:** [testing and running a game](docs/testing-and-running.md) · [replaying a frame](docs/replay.md) · [findings](docs/findings.md) · [architecture](docs/architecture.md)
+
 A fork of [VIctory](https://github.com/Marvisak/VIctory), a compatibility layer
 that runs an Xbox Series title natively on Windows from files the user supplies.
 This fork is set up for **one PC: RTX 3080 12 GB, Ryzen 5 5600T (6 cores, 12
-threads), 32 GB RAM.** It started from an RX 7900 XTX fork; that card's numbers
-are kept below, marked as such.
+threads), 32 GB RAM.** It is NVIDIA-only: the AMD vendor checks, the AMD-only
+FSR 4K mode and the AMD launcher profile are gone, and the launcher always asks
+for the NVIDIA adapter. It started from an RX 7900 XTX fork; that card's numbers
+are kept below, marked as such. (The console's own AMD GPU code, which the
+translator reads, stays: it is the game's, not the host's.)
 
 ## Status: not yet run on the 3080
 
-Nothing here has been measured on this PC. The `rtx3080` launcher profile and
+Nothing here has been measured on this PC. The launcher's NVIDIA settings and
 the notes below are starting points worked out from the code and from the
 measurements the AMD fork and an RTX 4070 12 GB run (older code) made. Expect to
 tune. Please report what happens: the first useful thing to learn is whether it
@@ -27,6 +32,19 @@ account line and `VICTORY_MEMORY_MAP=1`, that says whether DexNom/VIctory's para
 prelude recording or its per-range remap lock would help this PC. If the waits are under
 about 1 ms a frame, they would not.
 
+## What changed in this fork (summary)
+
+- **NVIDIA only.** No AMD vendor checks, no AMD launcher profile, no AMD-only FSR 4K mode.
+- **Low-RAM defaults** for PCs with 32 GB or less (`residency.rs`), plus an optional in-place
+  title-memory mode behind a probe.
+- **Launcher and settings window** (`scripts\play.ps1`, `scripts\Settings.ps1`): choices are
+  saved, and the NVIDIA settings are always applied. Worker counts follow the CPU.
+- **Driver watch** (`drvwatch.rs`, from VItoriaBr): NVIDIA's event-log errors (event 153) are
+  logged; the first one switches the indirect-window path off for the rest of the run.
+  `VICTORY_DRIVER_WATCH=0` turns it off.
+- **Diagnostics counters** for recording and mapping waits, to decide on later ports.
+- Clippy is clean for the Windows target. Nothing has run on the 3080 yet.
+
 ## What the 3080 has and what it does not
 
 | | |
@@ -34,8 +52,7 @@ about 1 ms a frame, they would not.
 | Direct3D 12 SM 6.6, mesh shaders, DXR | yes (Ampere); the title's requirements are met |
 | Waves of 32 | handled: console wave64 compute is translated for 32 lanes (`victory-gpu/src/host.rs`) |
 | Heap cap of 1,000,000 views, 16-bit colour formats, R9G9B9E5 | handled by clamps and stand-in formats (`descriptor/host.rs`, `resource.rs`) |
-| Indirect dispatches over 65,535 groups | **cut off** unless `-WideIndirect` (below): the clamp only widens on AMD, so a few thousand of the picture's lowest tiles can go missing |
-| PC FSR 4 (`-Fsr4K`) | **not available**: it needs an AMD card and AMD's signed DLL; the launcher ignores it on this profile |
+| Indirect dispatches over 65,535 groups | **cut off** unless `-WideIndirect` (below): a few thousand of the picture's lowest tiles can go missing |
 | 12 GB of VRAM | the AMD run used 10.5 GB, the 4070's run sat at 85-99 % of its budget: texture churn likely |
 | 32 GB of RAM | **short**: the AMD run used about 30 GB of private memory and the notes in `docs/findings.md` count 40-46 GB (lists' allocators 9, windows 7, uploads 4). Set a large page file (see below) |
 | 6 cores / 12 threads | the AMD run had 24 threads. Thread counts that follow the CPU scale down by themselves; the launcher lowers `VICTORY_THIN_THREADS` and `VICTORY_JOIN_PARTS` to 4. The frame is limited by the one thread that submits (about 40 ms there), so single-core speed matters most |
@@ -58,23 +75,23 @@ copy victory.example.toml victory.toml      # then set game_dir, outside this fo
 cargo build --locked --profile diag -p victory --features diagnostics
 target\diag\victory.exe shaders <the shader archives>   # every shader translated, minutes
 target\diag\victory.exe warm --used                     # pipelines for this driver and build
-scripts\play.ps1 -Exe <path of your copy's executable>      # -Gpu auto picks the nvidia profile
+scripts\play.ps1 -Exe <path of your copy's executable>
 ```
 
 Run it from a normal window, not as administrator. Try `-Safe` first when
 something is wrong. Close the browser and other programs: every GB counts.
 
 **Settings window.** The first run of `scripts\play.ps1` opens a window (Windows Forms,
-nothing to build): game executable, graphics card profile, console profile (Series X or
+nothing to build): game executable, console profile (Series X or
 S), output size, frame rate (30, 45 or 60), ray tracing, memory use (automatic, low,
 balanced or high), build (diag or release) and the safe-mode, in-place and wide-indirect
 boxes. A **32 GB PC preset** button picks the Series S profile at 1080p with tight
 memory. Choices are saved in `%LOCALAPPDATA%\victory\launcher.json` and used by later
 runs; `-Settings` opens the window again and `-NoDialog` never shows it. A switch on the
-command line adds to what was saved (`-Build`, `-Gpu` and `-Exe` replace it). The window
+command line adds to what was saved (`-Build` and `-Exe` replace it). The window
 has not been run on Windows yet.
 
-What the `nvidia` profile (`-Gpu auto` picks it when an NVIDIA adapter is present; `-Gpu rtx3080` is the same) sets, on top of the usual settings (all unmeasured starting
+What the launcher sets for the NVIDIA card, on top of the usual settings (all unmeasured starting
 points, change them with `-More @{NAME='value'}`):
 
 | Setting | Value | Why |
@@ -107,7 +124,7 @@ frame, these are the first things to try:
   the lag exists because of device losses from memory freed too early, so lower it only to test)
   and `VICTORY_KEEP_SNAPSHOTS_MB=128`, for less RAM; `VICTORY_MEMORY_MAP=1` lists where it goes.
 - `-WideIndirect` (sets `VICTORY_INDIRECT_WIDE=force`) lets the card try indirect
-  dispatches of up to about a million groups, as an AMD card does. D3D12 leaves
+  dispatches of up to about a million groups. D3D12 leaves
   counts past 65,535 undefined, so an NVIDIA card may clamp them, wrap them or lose
   the device. It is off by default for that reason. Try it only if tiles are missing.
 - `VICTORY_OUTPUT=1920x1080` or `--console series-s` (see the tables below) for
@@ -119,6 +136,7 @@ high-performance adapter with Shader Model 6.6. The runtime logs its adapter
 name, PCI vendor and device IDs, and dedicated VRAM. Set `VICTORY_D3D12_ADAPTER`
 to a zero-based DXGI index or part of the adapter's name to select it explicitly.
 
+Testing the build and running a game, step by step: [docs/testing-and-running.md](docs/testing-and-running.md).
 Commands, debugging switches and upstream's own description:
 [docs/README-fxceless.md](docs/README-fxceless.md). Every `VICTORY_...` switch is
 described in a comment where it is read.
@@ -182,7 +200,8 @@ i7-14700KF, 32 GB ([docs/README-fxceless.md](docs/README-fxceless.md)).
 | `VICTORY_FRAME_INTERVAL_MS=16.667` | Lets the title go above 30 fps (menus and videos reach 60; the game's clock stays right) |
 | `VICTORY_AMBIENT_SETTLE` | How fast light settles after walking indoors (on by default, `250,3`; `0` turns it off) |
 | `VICTORY_TEXTURE_STORE=1` | Converted textures kept between runs (about 8 ms a frame for now: off) |
-| `VICTORY_INDIRECT_WIDE` | `0`: indirect dispatches cut at 65,535 groups everywhere; `force`: let non-AMD cards try wide counts |
+| `VICTORY_DRIVER_WATCH` | `0`: do not watch the system event log for the display driver's errors (on by default) |
+| `VICTORY_INDIRECT_WIDE` | `0`: indirect dispatches cut at 65,535 groups; `force`: let the card try wide counts (untested) |
 
 What is known to be wrong:
 

@@ -273,29 +273,16 @@ fn make_for(device: &ID3D12Device) -> windows::core::Result<Clamp> {
 /// 2560x1440: in a captured frame 67,440 and 47,760 (the program
 /// 2dc364df5d3278b8 and 940c2635dc1312f4). Cut to 65,535 the first list lost
 /// its last 1,905 tiles, the lowest of the picture. The console runs what it
-/// is asked (its dispatch counts are 32 bits), and so does an AMD card, whose
-/// dispatch packets and group numbers are the same; D3D12 does not look at
-/// indirect counts. Other cards stay at 65,535, unless asked otherwise:
-/// `VICTORY_INDIRECT_WIDE=force` lets any vendor's card try the wide counts.
-/// That is untested off AMD (D3D12 leaves indirect counts past 65,535
-/// undefined; a card may clamp, wrap or lose the device), so it is opt-in.
-fn widest(amd: bool) -> u32 {
+/// is asked (its dispatch counts are 32 bits). The card stays at 65,535
+/// unless asked otherwise: `VICTORY_INDIRECT_WIDE=force` tries the wide
+/// counts. That is untested on NVIDIA (D3D12 leaves indirect counts past
+/// 65,535 undefined; a card may clamp, wrap or lose the device), so it is
+/// opt-in.
+fn widest() -> u32 {
     let var = std::env::var_os("VICTORY_INDIRECT_WIDE");
     let forced = var.as_ref().is_some_and(|v| v == "force");
     let on = var.is_none_or(|v| v != "0");
-    if (amd || forced) && on { 1 << 20 } else { 65_535 }
-}
-
-/// Whether `device` is an AMD card's.
-pub(crate) fn amd(device: &ID3D12Device) -> bool {
-    use windows::Win32::Graphics::Dxgi::{CreateDXGIFactory2, DXGI_CREATE_FACTORY_FLAGS, IDXGIAdapter1, IDXGIFactory4};
-    // SAFETY: plain queries.
-    unsafe {
-        CreateDXGIFactory2::<IDXGIFactory4>(DXGI_CREATE_FACTORY_FLAGS(0))
-            .and_then(|f| f.EnumAdapterByLuid::<IDXGIAdapter1>(device.GetAdapterLuid()))
-            .and_then(|a| a.GetDesc1())
-            .is_ok_and(|d| d.VendorId == 0x1002)
-    }
+    if forced && on { 1 << 20 } else { 65_535 }
 }
 
 /// Whether a record that does not fit in what is left of its list's budget
@@ -311,7 +298,7 @@ fn rest() -> u32 {
 /// The clamp compiled from `source` (ours, or in the benchmark the one it
 /// replaced).
 fn make_from(device: &ID3D12Device, source: &str) -> windows::core::Result<Clamp> {
-    let source = &format!("#define WIDEST {}u\n#define REST {}\n{source}", widest(amd(device)), rest());
+    let source = &format!("#define WIDEST {}u\n#define REST {}\n{source}", widest(), rest());
     let mut code: Option<ID3DBlob> = None;
     let mut errors: Option<ID3DBlob> = None;
     // SAFETY: the source and names live through the call; out pointers ours.
@@ -2984,7 +2971,7 @@ void main(uint3 group : SV_GroupID, uint3 thread : SV_DispatchThreadID) {
         let Some(mut gpu) = WarpHarness::on(false) else {
             return;
         };
-        if !amd(&gpu.device) || widest(true) == 65_535 {
+        if widest() == 65_535 {
             return;
         }
         let worker = compile_cs(&gpu.device, CS).expect("the worker must compile");
