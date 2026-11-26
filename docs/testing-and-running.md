@@ -149,6 +149,18 @@ scripts\play.ps1 -Exe <exe> -NoDialog 2>&1 | Tee-Object run-5min.log
 - Warm the pipelines first (`victory warm --used`), or the first minutes measure the driver
   compiling.
 
+**Automatic 5-minute run.** `scripts\test-run.ps1` starts the game, lets it run for a set time, asks it
+to close (so the end-of-run summary prints), stops it after 30 seconds if it does not, saves the log to
+`%LOCALAPPDATA%\victory\logs\test-<date>.err.log`, and prints the lines to send back.
+
+```powershell
+scripts\test-run.ps1 -Exe <path of your copy's executable>              # 5 minutes
+scripts\test-run.ps1 -Minutes 30                                        # soak (uses the saved executable)
+scripts\test-run.ps1 -Safe -More @{VICTORY_PANEL='1'}                   # same switches as play.ps1
+```
+
+It has not been run on Windows yet. If the log is empty, run `play.ps1` by hand.
+
 | Run | Length | Purpose |
 |---|---|---|
 | Boot | until the menu | Does it start; adapter and driver lines. |
