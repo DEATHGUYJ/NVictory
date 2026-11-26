@@ -11,7 +11,7 @@ translator reads, stays: it is the game's, not the host's.)
 
 ## Status: not yet run on the 3080
 
-Nothing here has been measured on this PC. The `rtx3080` launcher profile and
+Nothing here has been measured on this PC. The launcher's NVIDIA settings and
 the notes below are starting points worked out from the code and from the
 measurements the AMD fork and an RTX 4070 12 GB run (older code) made. Expect to
 tune. Please report what happens: the first useful thing to learn is whether it
@@ -60,7 +60,7 @@ copy victory.example.toml victory.toml      # then set game_dir, outside this fo
 cargo build --locked --profile diag -p victory --features diagnostics
 target\diag\victory.exe shaders <the shader archives>   # every shader translated, minutes
 target\diag\victory.exe warm --used                     # pipelines for this driver and build
-scripts\play.ps1 -Exe <path of your copy's executable>      # -Gpu auto picks the nvidia profile
+scripts\play.ps1 -Exe <path of your copy's executable>
 ```
 
 Run it from a normal window, not as administrator. Try `-Safe` first when
@@ -73,10 +73,10 @@ balanced or high), build (diag or release) and the safe-mode, in-place and wide-
 boxes. A **32 GB PC preset** button picks the Series S profile at 1080p with tight
 memory. Choices are saved in `%LOCALAPPDATA%\victory\launcher.json` and used by later
 runs; `-Settings` opens the window again and `-NoDialog` never shows it. A switch on the
-command line adds to what was saved (`-Build`, `-Gpu` and `-Exe` replace it). The window
+command line adds to what was saved (`-Build` and `-Exe` replace it). The window
 has not been run on Windows yet.
 
-What the `nvidia` profile (`-Gpu auto` picks it when an NVIDIA adapter is present; `-Gpu rtx3080` is the same) sets, on top of the usual settings (all unmeasured starting
+What the launcher sets for the NVIDIA card, on top of the usual settings (all unmeasured starting
 points, change them with `-More @{NAME='value'}`):
 
 | Setting | Value | Why |

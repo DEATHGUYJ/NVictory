@@ -1,7 +1,7 @@
 //! `amd_fidelityfx_loader_xbox.dll`: AMD FidelityFX's API, served by the
-//! host's PC build of it on the host GPU when the user names a folder that
-//! holds one (`VICTORY_FIDELITYFX_DIR`) and selects a 4K FSR profile.
-//! Other profiles keep the title's own console DLLs.
+//! host's PC build of it on the host GPU when [`use_host_dir`] names a folder
+//! that holds one (no launcher setting does: the 4K FSR profile was removed
+//! with the AMD support). Otherwise the title keeps its own console DLLs.
 //!
 //! Both builds have the same API (the FidelityFX SDK's, MIT): five functions
 //! over chains of descriptions, each starting with a type id and the next
