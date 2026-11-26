@@ -55,6 +55,16 @@ scripts\play.ps1 -Exe <path of your copy's executable>      # -Gpu auto picks th
 Run it from a normal window, not as administrator. Try `-Safe` first when
 something is wrong. Close the browser and other programs: every GB counts.
 
+**Settings window.** The first run of `scripts\play.ps1` opens a window (Windows Forms,
+nothing to build): game executable, graphics card profile, console profile (Series X or
+S), output size, frame rate (30, 45 or 60), ray tracing, memory use (automatic, low,
+balanced or high), build (diag or release) and the safe-mode, in-place and wide-indirect
+boxes. A **32 GB PC preset** button picks the Series S profile at 1080p with tight
+memory. Choices are saved in `%LOCALAPPDATA%\victory\launcher.json` and used by later
+runs; `-Settings` opens the window again and `-NoDialog` never shows it. A switch on the
+command line adds to what was saved (`-Build`, `-Gpu` and `-Exe` replace it). The window
+has not been run on Windows yet.
+
 What the `nvidia` profile (`-Gpu auto` picks it when an NVIDIA adapter is present; `-Gpu rtx3080` is the same) sets, on top of the usual settings (all unmeasured starting
 points, change them with `-More @{NAME='value'}`):
 

@@ -9,10 +9,14 @@
 # -WideIndirect (nvidia) lets the card try indirect dispatches past 65,535 groups: untested, may lose the device
 # -InPlaceProbe asks this PC's driver whether title memory can be opened as card memory (VICTORY_INPLACE_PROBE=1); read the log
 # -InPlace      (nvidia) title memory used in place, not copied (VICTORY_INPLACE=1, 2 GB at most): off until the probe passes
+# -Settings     shows the settings window (also shown on the first run); choices are saved and used by later runs
+# -NoDialog     never shows it: command-line switches and the saved choices (or the defaults) only
 # -More         other settings: -More @{VICTORY_PANEL='1'}
 # Run it from a normal window, not as administrator: the driver then keeps its shader cache elsewhere.
 param(
-    [Parameter(Mandatory)][string]$Exe,
+    [string]$Exe,
+    [switch]$Settings,
+    [switch]$NoDialog,
     [switch]$Safe,
     [switch]$RayTracing,
     [ValidateSet('quality', 'balanced', 'performance')][string]$Fsr4K,
@@ -23,6 +27,23 @@ param(
     [switch]$InPlace,
     [hashtable]$More = @{}
 )
+. (Join-Path $PSScriptRoot 'Settings.ps1')
+# The settings window: on the first run, when asked for (-Settings), and when there is no game executable yet.
+$cfg = Get-LauncherConfig
+if (-not $NoDialog -and ($Settings -or -not $cfg -or (-not $Exe -and -not $cfg.exe))) {
+    $cfg = Show-LauncherSettings $cfg $Exe
+    if (-not $cfg) { Write-Host 'Cancelled.'; exit 0 }
+    Save-LauncherConfig $cfg
+}
+if (-not $cfg) { $cfg = Get-LauncherDefaults }
+if (-not $Exe) { $Exe = [string]$cfg.exe }
+# What the command line says wins over what was saved; switches only ever add.
+if ($cfg.safe) { $Safe = $true }
+if ($cfg.rayTracing -ne 'off') { $RayTracing = $true }
+if ($cfg.inPlace) { $InPlace = $true }
+if ($cfg.wideIndirect) { $WideIndirect = $true }
+if (-not $PSBoundParameters.ContainsKey('Build')) { $Build = [string]$cfg.build }
+if (-not $PSBoundParameters.ContainsKey('Gpu')) { $Gpu = [string]$cfg.gpu }
 $settings = @{
     VICTORY_TEXTURE_NO_WAIT = '1'; VICTORY_RELAY = '2'; VICTORY_WIDE_BACK = '1'; VICTORY_CARD_REHASH_RUNS = '1'
     VICTORY_JOIN_COPIES = '1'; VICTORY_INDIRECT_WINDOW = '1'; VICTORY_RELAY_COPY = '1'; VICTORY_CARD_STEPS = '2'
@@ -56,11 +77,19 @@ if ($Gpu -eq 'nvidia') {
     if ($Fsr4K) { Write-Host "-Fsr4K needs an AMD card; ignored on the nvidia profile."; $Fsr4K = $null }
 }
 if ($Fsr4K) { $settings.VICTORY_FSR_4K = $Fsr4K.ToLowerInvariant() }
+# The settings window's choices.
+if ($cfg.output -ne 'default') { $settings.VICTORY_OUTPUT = [string]$cfg.output }
+if ($cfg.fps -eq '60') { $settings.VICTORY_FRAME_INTERVAL_MS = '16.667' }
+if ($cfg.fps -eq '45') { $settings.VICTORY_FRAME_INTERVAL_MS = '22.222' }
+if ($cfg.rayTracing -eq 'ambient') { $settings.VICTORY_AMBIENT_RT = '0.7,1.5' }
+if ($cfg.memory -eq 'low') { $settings.VICTORY_RESIDENCY = '1'; $settings.VICTORY_WINDOW_BUDGET_MB = '2048' }
+if ($cfg.memory -eq 'balanced') { $settings.VICTORY_RESIDENCY = '1'; $settings.VICTORY_WINDOW_BUDGET_MB = '4096' }
+if ($cfg.memory -eq 'high') { $settings.VICTORY_RESIDENCY = '0'; $settings.Remove('VICTORY_WINDOW_BUDGET_MB') }
 foreach ($k in $More.Keys) { $settings[$k] = $More[$k] }
 
 $victory = Join-Path $PSScriptRoot "..\target\$Build\victory.exe"
 if (-not (Test-Path $victory)) { Write-Host "No $victory. Build it first (README.md)."; exit 1 }
-if (-not (Test-Path $Exe)) { Write-Host "No $Exe."; exit 1 }
+if (-not $Exe -or -not (Test-Path $Exe)) { Write-Host "No game executable ($Exe). Run with -Settings to choose it."; exit 1 }
 # (Other settings left over in this window go; where your files are stays.)
 $paths = 'VICTORY_CONFIG', 'VICTORY_GAME_DIR', 'VICTORY_CACHE_DIR', 'VICTORY_DATA_DIR', 'VICTORY_FIDELITYFX_DIR'
 $inherited = @(Get-ChildItem Env:VICTORY_* | Where-Object { $_.Name -notin $paths })
@@ -74,4 +103,4 @@ if ($discarded) {
 }
 $Exe = (Resolve-Path $Exe).Path
 Push-Location (Join-Path $PSScriptRoot '..')   # victory.toml is looked for here
-try { & $victory run $Exe --execute } finally { Pop-Location }
+try { & $victory run $Exe --execute --console ([string]$cfg.console) } finally { Pop-Location }
