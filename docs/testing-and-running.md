@@ -119,6 +119,43 @@ For each run, note:
 If the waits in line 3 are under about 1 ms a frame, DexNom's parallel recording
 and per-range lock would not help this PC.
 
+### A single frame, and a timed period of play
+
+These are two different things; use both.
+
+**One frame (a capture you can replay).** Use the recorder (section 8). It writes down one
+frame's GPU work and lets you rerun it without the game. Pick a heavy frame: stand in
+the scene first, then trigger it by time (`VICTORY_RECORD_AT='120'` is 120 seconds after the
+device was made, or `'f5000'` for the 5,000th present) or by creating the file `go` in the
+capture folder. Read `notes.txt` in the capture folder. This is for finding where the card's
+time goes. It is not a frame-rate test.
+
+**A timed period (a log of real play).** Play for a fixed time in a fixed place and keep the log.
+Start with 5 minutes, then 30 minutes for stability. The same place and the same route each
+time makes runs comparable.
+
+```powershell
+# Start the log, note the time, play, then quit the game from its own menu if you can.
+scripts\play.ps1 -Exe <exe> -NoDialog 2>&1 | Tee-Object run-5min.log
+```
+
+- Quit from the game's menu where possible. The end-of-run summary lines (the counters and the
+  driver-error count) are printed on a clean exit and are lost if you kill the process.
+- If you must stop it, close the window, and say the log has no summary.
+- Write down the wall-clock start and end times, what you did, and when anything looked wrong
+  (stutter, black faces, a hitch), so the log lines around that time can be found.
+- The frame account and "recording and mapping waits per frame" lines repeat every batch of
+  frames, so a long run gives many samples. Send the whole file, not only the last lines.
+- Warm the pipelines first (`victory warm --used`), or the first minutes measure the driver
+  compiling.
+
+| Run | Length | Purpose |
+|---|---|---|
+| Boot | until the menu | Does it start; adapter and driver lines. |
+| Short | 5 minutes in one scene | Frame cost, the two log lines above, first stutter. |
+| Soak | 30 minutes | Leaks (RAM, VRAM), device loss, long-run stutter. |
+| Capture | one frame | Where a slow frame spends its time. |
+
 ## 7. Troubleshooting
 
 | Symptom | Try |
