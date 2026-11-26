@@ -306,6 +306,7 @@ const WINDOW_MOST: u64 = 64;
 fn windows() -> bool {
     static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
     *ON.get_or_init(|| std::env::var_os("VICTORY_INDIRECT_WINDOW").is_some_and(|v| v == "1"))
+        && !crate::drvwatch::tripped()
 }
 
 /// Whether indirect executions whose arguments or count lie in title memory
