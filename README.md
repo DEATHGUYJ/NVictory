@@ -1,5 +1,7 @@
 # VIctory on an RTX 3080 12 GB
 
+**Quick links:** [testing and running a game](docs/testing-and-running.md) · [replaying a frame](docs/replay.md) · [findings](docs/findings.md) · [architecture](docs/architecture.md)
+
 A fork of [VIctory](https://github.com/Marvisak/VIctory), a compatibility layer
 that runs an Xbox Series title natively on Windows from files the user supplies.
 This fork is set up for **one PC: RTX 3080 12 GB, Ryzen 5 5600T (6 cores, 12
@@ -29,6 +31,19 @@ and reads of title memory wait for each other (the global remap lock). With the 
 account line and `VICTORY_MEMORY_MAP=1`, that says whether DexNom/VIctory's parallel
 prelude recording or its per-range remap lock would help this PC. If the waits are under
 about 1 ms a frame, they would not.
+
+## What changed in this fork (summary)
+
+- **NVIDIA only.** No AMD vendor checks, no AMD launcher profile, no AMD-only FSR 4K mode.
+- **Low-RAM defaults** for PCs with 32 GB or less (`residency.rs`), plus an optional in-place
+  title-memory mode behind a probe.
+- **Launcher and settings window** (`scripts\play.ps1`, `scripts\Settings.ps1`): choices are
+  saved, and the NVIDIA settings are always applied. Worker counts follow the CPU.
+- **Driver watch** (`drvwatch.rs`, from VItoriaBr): NVIDIA's event-log errors (event 153) are
+  logged; the first one switches the indirect-window path off for the rest of the run.
+  `VICTORY_DRIVER_WATCH=0` turns it off.
+- **Diagnostics counters** for recording and mapping waits, to decide on later ports.
+- Clippy is clean for the Windows target. Nothing has run on the 3080 yet.
 
 ## What the 3080 has and what it does not
 
@@ -67,7 +82,7 @@ Run it from a normal window, not as administrator. Try `-Safe` first when
 something is wrong. Close the browser and other programs: every GB counts.
 
 **Settings window.** The first run of `scripts\play.ps1` opens a window (Windows Forms,
-nothing to build): game executable, graphics card profile, console profile (Series X or
+nothing to build): game executable, console profile (Series X or
 S), output size, frame rate (30, 45 or 60), ray tracing, memory use (automatic, low,
 balanced or high), build (diag or release) and the safe-mode, in-place and wide-indirect
 boxes. A **32 GB PC preset** button picks the Series S profile at 1080p with tight
@@ -121,6 +136,7 @@ high-performance adapter with Shader Model 6.6. The runtime logs its adapter
 name, PCI vendor and device IDs, and dedicated VRAM. Set `VICTORY_D3D12_ADAPTER`
 to a zero-based DXGI index or part of the adapter's name to select it explicitly.
 
+Testing the build and running a game, step by step: [docs/testing-and-running.md](docs/testing-and-running.md).
 Commands, debugging switches and upstream's own description:
 [docs/README-fxceless.md](docs/README-fxceless.md). Every `VICTORY_...` switch is
 described in a comment where it is read.
@@ -184,6 +200,7 @@ i7-14700KF, 32 GB ([docs/README-fxceless.md](docs/README-fxceless.md)).
 | `VICTORY_FRAME_INTERVAL_MS=16.667` | Lets the title go above 30 fps (menus and videos reach 60; the game's clock stays right) |
 | `VICTORY_AMBIENT_SETTLE` | How fast light settles after walking indoors (on by default, `250,3`; `0` turns it off) |
 | `VICTORY_TEXTURE_STORE=1` | Converted textures kept between runs (about 8 ms a frame for now: off) |
+| `VICTORY_DRIVER_WATCH` | `0`: do not watch the system event log for the display driver's errors (on by default) |
 | `VICTORY_INDIRECT_WIDE` | `0`: indirect dispatches cut at 65,535 groups; `force`: let the card try wide counts (untested) |
 
 What is known to be wrong:
