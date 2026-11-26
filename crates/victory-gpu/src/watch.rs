@@ -3583,7 +3583,22 @@ pub fn title_memory_remapping() -> Remapping {
             tracing::info!(met, "accesses of title threads that waited for a change of mapping");
         }
     }
-    let changing = MAPPING.write().unwrap_or_else(|e| e.into_inner());
+    let changing = match MAPPING.try_write() {
+        Ok(guard) => guard,
+        Err(std::sync::TryLockError::Poisoned(e)) => e.into_inner(),
+        Err(std::sync::TryLockError::WouldBlock) => {
+            #[cfg(feature = "diagnostics")]
+            let waited = std::time::Instant::now();
+            let guard = MAPPING.write().unwrap_or_else(|e| e.into_inner());
+            #[cfg(feature = "diagnostics")]
+            {
+                use crate::copystat::{C, add};
+                add(C::RemapWaits, 1);
+                add(C::RemapWaitUs, waited.elapsed().as_micros() as u64);
+            }
+            guard
+        }
+    };
     CHANGES.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
     CHANGING.set((true, false));
     Remapping(changing)
@@ -3597,7 +3612,22 @@ pub struct Reading(#[allow(dead_code)] std::sync::RwLockReadGuard<'static, ()>);
 /// Not to be taken twice by one thread, nor held across anything that
 /// maps title memory.
 pub fn title_memory_reading() -> Reading {
-    Reading(MAPPING.read().unwrap_or_else(|e| e.into_inner()))
+    match MAPPING.try_read() {
+        Ok(guard) => Reading(guard),
+        Err(std::sync::TryLockError::Poisoned(e)) => Reading(e.into_inner()),
+        Err(std::sync::TryLockError::WouldBlock) => {
+            #[cfg(feature = "diagnostics")]
+            let waited = std::time::Instant::now();
+            let guard = MAPPING.read().unwrap_or_else(|e| e.into_inner());
+            #[cfg(feature = "diagnostics")]
+            {
+                use crate::copystat::{C, add};
+                add(C::ReadWaits, 1);
+                add(C::ReadWaitUs, waited.elapsed().as_micros() as u64);
+            }
+            Reading(guard)
+        }
+    }
 }
 
 /// [`title_memory_reading`] if it can be had at once: `None` while the
@@ -3623,7 +3653,7 @@ pub fn title_memory_reading_now() -> Option<Reading> {
 /// write access is given back.
 pub fn title_memory_remapped(at: usize, len: usize) {
     crate::texback::remapped(at, len);
-    open(&mut title_memory_changed(at, len), at, at.saturating_add(len));
+    open(&title_memory_changed(at, len), at, at.saturating_add(len));
 }
 
 /// The runtime is about to unmap title memory `[at, at + len)`: it is

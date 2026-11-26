@@ -131,6 +131,17 @@ pub(crate) enum C {
     WaitsForGroups,
     WaitsForBuffers,
     IndirectBounded,
+    /// Host state preludes recorded (`HostList::prelude`) and the
+    /// microseconds that took, summed over threads.
+    PreludeRecords,
+    PreludeUs,
+    /// Changes of title mapping that had to wait for readers, and reads of
+    /// title memory that had to wait for a change, with the microseconds
+    /// each waited (`watch::title_memory_remapping`, `title_memory_reading`).
+    RemapWaits,
+    RemapWaitUs,
+    ReadWaits,
+    ReadWaitUs,
 }
 const COUNTERS: usize = 80;
 /// One of some sets of counters, each in lines of the processor's memory of
@@ -1380,6 +1391,17 @@ pub(crate) fn log(frames: f64) {
         c[C::HostLists as usize],
         c[C::HostListNs as usize] / 1e6,
         c[C::PartsTogether as usize],
+    );
+    tracing::info!(
+        "recording and mapping waits per frame, all threads: {:.1} host state preludes recorded in {:.2} ms; \
+         {:.2} changes of title mapping waited {:.2} ms for readers; {:.1} reads of title memory waited {:.2} ms \
+         for a change of mapping",
+        c[C::PreludeRecords as usize],
+        ms(c[C::PreludeUs as usize]),
+        c[C::RemapWaits as usize],
+        ms(c[C::RemapWaitUs as usize]),
+        c[C::ReadWaits as usize],
+        ms(c[C::ReadWaitUs as usize]),
     );
     // What is copied whole, largest first: memory nobody tells us about.
     let whole = WHOLE.lock().unwrap_or_else(|e| e.into_inner()).take();
