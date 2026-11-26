@@ -6,6 +6,8 @@
 # -WideIndirect lets the card try indirect dispatches past 65,535 groups: untested, may lose the device
 # -InPlaceProbe asks this PC's driver whether title memory can be opened as card memory (VICTORY_INPLACE_PROBE=1); read the log
 # -InPlace      title memory used in place, not copied (VICTORY_INPLACE=1, 2 GB at most): off until the probe passes
+# -Async       recorded and split submission (VICTORY_THIN, VICTORY_JOIN_PARTS): faster, but off by default on NVIDIA
+#               (cool_fox found head skin not drawn with THIN, and repeated video frames with JOIN_PARTS)
 # -Settings     shows the settings window (also shown on the first run); choices are saved and used by later runs
 # -NoDialog     never shows it: command-line switches and the saved choices (or the defaults) only
 # -More         other settings: -More @{VICTORY_PANEL='1'}
@@ -18,6 +20,7 @@ param(
     [switch]$RayTracing,
     [ValidateSet('diag', 'release')][string]$Build = 'diag',
     [switch]$WideIndirect,
+    [switch]$Async,
     [switch]$InPlaceProbe,
     [switch]$InPlace,
     [hashtable]$More = @{}
@@ -52,8 +55,13 @@ $workers = [Math]::Max(2, [Math]::Min(8, [int][Math]::Floor([Environment]::Proce
 if ($Safe) {
     $settings.VICTORY_UNDER_WIDE = '0'; $settings.VICTORY_LAND_ECHO = '0'
 } else {
-    $settings.VICTORY_THIN = '1'; $settings.VICTORY_UPLOAD_AHEAD = '1'
-    $settings.VICTORY_JOIN_PARTS = "$workers"; $settings.VICTORY_THIN_THREADS = "$workers"   # 8 and 8 on 24 threads
+    $settings.VICTORY_UPLOAD_AHEAD = '1'
+    if ($Async) {
+        $settings.VICTORY_THIN = '1'; $settings.VICTORY_THIN_THREADS = "$workers"; $settings.VICTORY_JOIN_PARTS = "$workers"
+    } else {
+        # Off on NVIDIA unless asked for: see -Async above.
+        $settings.VICTORY_THIN = '0'; $settings.VICTORY_JOIN_PARTS = '0'
+    }
 }
 if ($RayTracing) { $settings.VICTORY_BVH_BUILDER = '1' }
 if ($InPlaceProbe) { $settings.VICTORY_INPLACE_PROBE = '1' }
