@@ -4,6 +4,8 @@
 # -RayTracing   the title's own ray-traced indirect light: lit interiors, about a third slower
 # -Fsr4K        PC FidelityFX 4.1.2 at 3840x2160 (quality, balanced or performance)
 # -Build        target\diag (the default, the build all measurements are of) or target\release
+# -Gpu          amd (the default, tuned on an RX 7900 XTX) or rtx3080 (RTX 3080 12 GB, Ryzen 5 5600T, 32 GB RAM)
+# -WideIndirect (rtx3080) lets the card try indirect dispatches past 65,535 groups: untested, may lose the device
 # -More         other settings: -More @{VICTORY_PANEL='1'}
 # Run it from a normal window, not as administrator: the driver then keeps its shader cache elsewhere.
 param(
@@ -12,6 +14,8 @@ param(
     [switch]$RayTracing,
     [ValidateSet('quality', 'balanced', 'performance')][string]$Fsr4K,
     [ValidateSet('diag', 'release')][string]$Build = 'diag',
+    [ValidateSet('amd', 'rtx3080')][string]$Gpu = 'amd',
+    [switch]$WideIndirect,
     [hashtable]$More = @{}
 )
 $settings = @{
@@ -26,6 +30,18 @@ if ($Safe) {
     $settings.VICTORY_THIN = '1'; $settings.VICTORY_JOIN_PARTS = '8'; $settings.VICTORY_UPLOAD_AHEAD = '1'
 }
 if ($RayTracing) { $settings.VICTORY_BVH_BUILDER = '1' }
+if ($Gpu -eq 'rtx3080') {
+    # Starting points for 6 cores / 12 threads, 12 GB of VRAM and 32 GB of RAM; none of these is measured yet.
+    $settings.VICTORY_D3D12_ADAPTER = 'NVIDIA'
+    if (-not $Safe) {
+        $settings.VICTORY_THIN_THREADS = '4'   # default 8, sized for 24 threads
+        $settings.VICTORY_JOIN_PARTS = '4'     # 8 above, sized for 24 threads
+    }
+    $settings.VICTORY_LEVELS_ON_DEMAND = '1'   # card memory only for texture levels the title holds (about 3 GB saved in the 12 GB RTX 4070 test)
+    $settings.VICTORY_WINDOW_BUDGET_MB = '2048' # caps loose title-window copies (about 7 GB uncapped)
+    if ($WideIndirect) { $settings.VICTORY_INDIRECT_WIDE = 'force' }
+    if ($Fsr4K) { Write-Host "-Fsr4K needs an AMD card; ignored on rtx3080."; $Fsr4K = $null }
+}
 if ($Fsr4K) { $settings.VICTORY_FSR_4K = $Fsr4K.ToLowerInvariant() }
 foreach ($k in $More.Keys) { $settings[$k] = $More[$k] }
 
