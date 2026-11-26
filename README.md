@@ -49,23 +49,37 @@ copy victory.example.toml victory.toml      # then set game_dir, outside this fo
 cargo build --locked --profile diag -p victory --features diagnostics
 target\diag\victory.exe shaders <the shader archives>   # every shader translated, minutes
 target\diag\victory.exe warm --used                     # pipelines for this driver and build
-scripts\play.ps1 -Gpu rtx3080 -Exe <path of your copy's executable>
+scripts\play.ps1 -Exe <path of your copy's executable>      # -Gpu auto picks the nvidia profile
 ```
 
 Run it from a normal window, not as administrator. Try `-Safe` first when
 something is wrong. Close the browser and other programs: every GB counts.
 
-What `-Gpu rtx3080` sets, on top of the usual settings (all unmeasured starting
+What the `nvidia` profile (`-Gpu auto` picks it when an NVIDIA adapter is present; `-Gpu rtx3080` is the same) sets, on top of the usual settings (all unmeasured starting
 points, change them with `-More @{NAME='value'}`):
 
 | Setting | Value | Why |
 |---|---|---|
 | `VICTORY_D3D12_ADAPTER` | `NVIDIA` | picks the 3080 on a PC with a second adapter (such as an iGPU) |
-| `VICTORY_THIN_THREADS` | `4` (default 8) | 12 threads, not 24; not set under `-Safe` |
-| `VICTORY_JOIN_PARTS` | `4` (default 8) | the same; not set under `-Safe` |
+| `VICTORY_THIN_THREADS`, `VICTORY_JOIN_PARTS` | one third of the PC's threads, 2 to 8 (4 on your 12; 8 on the AMD fork's 24) | set for every card, not under `-Safe` |
 | `VICTORY_LEVELS_ON_DEMAND` | `1` | the card holds only the texture levels the title holds; about 3 GB saved in the 4070's run, which had no device loss |
 | `VICTORY_RESIDENCY` | `1` | the fork's low-RAM mode (also on by itself at 32 GiB of RAM or less; `0` turns it off): finished command lists and retired objects wait 16 submissions, not 64, before they are freed (`VICTORY_BURY_LAG`; the lists' allocators were about 9 GB in the AMD run, how much this saves is not measured); idle scratch and staging blocks are not kept for five minutes; texture prefetch is cut to 128 MiB a frame and to 64 / 16 MiB when free RAM or commit runs low |
 | `VICTORY_WINDOW_BUDGET_MB` | `4096` | caps the loose title-window copies (about 7 GB uncapped); the cap is halved when the process holds half the RAM, which on 32 GB will be most of the time |
+
+**Using title memory in place (the closest a PC gets to the console's one memory).**
+`VICTORY_INPLACE=1` opens a part of the title's own memory as a Direct3D heap and
+places the buffer over it, so shaders read and write the title's bytes and no
+host copy stands between: less RAM (the windows of title memory were about 7 GB)
+and no refreshes of those copies. It is off by default and has not run on an NVIDIA
+card. The card then reads that memory over PCIe, and the heap call it needs
+(`OpenExistingHeapFromAddress1`) is a newer driver feature, so check first:
+
+1. `scripts\play.ps1 -Exe <path> -InPlaceProbe`: the log says what this driver makes of the
+   two openings (`VICTORY_INPLACE_PROBE=1`, `docs/README-fxceless.md`).
+2. Only if it passes: `-InPlace` (stage 1, windows outside buffers, at most 2 GB:
+   `VICTORY_INPLACE_MB`). Stage 2 (`VICTORY_INPLACE=2`, title buffers too) is not
+   combined with `VICTORY_LATE_WAIT`; try it last, with `-More @{VICTORY_INPLACE='2'}`.
+3. A device loss or a worse frame time: leave it off.
 
 If it runs out of memory or the picture shows missing tiles at the bottom of the
 frame, these are the first things to try:
