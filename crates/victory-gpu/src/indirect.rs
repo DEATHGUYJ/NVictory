@@ -275,10 +275,15 @@ fn make_for(device: &ID3D12Device) -> windows::core::Result<Clamp> {
 /// its last 1,905 tiles, the lowest of the picture. The console runs what it
 /// is asked (its dispatch counts are 32 bits), and so does an AMD card, whose
 /// dispatch packets and group numbers are the same; D3D12 does not look at
-/// indirect counts. Other cards stay at 65,535.
+/// indirect counts. Other cards stay at 65,535, unless asked otherwise:
+/// `VICTORY_INDIRECT_WIDE=force` lets any vendor's card try the wide counts.
+/// That is untested off AMD (D3D12 leaves indirect counts past 65,535
+/// undefined; a card may clamp, wrap or lose the device), so it is opt-in.
 fn widest(amd: bool) -> u32 {
-    let on = std::env::var_os("VICTORY_INDIRECT_WIDE").is_none_or(|v| v != "0");
-    if amd && on { 1 << 20 } else { 65_535 }
+    let var = std::env::var_os("VICTORY_INDIRECT_WIDE");
+    let forced = var.as_ref().is_some_and(|v| v == "force");
+    let on = var.is_none_or(|v| v != "0");
+    if (amd || forced) && on { 1 << 20 } else { 65_535 }
 }
 
 /// Whether `device` is an AMD card's.

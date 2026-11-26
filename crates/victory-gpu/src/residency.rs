@@ -1,7 +1,7 @@
 //! Host-memory admission for speculative texture work and reusable upload storage.
 //!
 //! From codec-d/cool_fox (641835a4, fabb872a, c64fc9b4, 08e4574d, e94d277a; the
-//! values of the last). Only with `VICTORY_RESIDENCY=1` ([`on`]): the memory
+//! values of the last). With `VICTORY_RESIDENCY=1` ([`on`]; unset: on for 32 GiB of RAM or less): the memory
 //! of the system is then asked once a second; below 3 GiB of free RAM or 4 GiB
 //! of commit (out again above 5 / 6) texture prefetch is limited to 64 MiB a
 //! frame and idle scratch and staging blocks are let go; below 1.5 GiB of
@@ -16,10 +16,16 @@ use windows_sys::Win32::System::SystemInformation::{GlobalMemoryStatusEx, MEMORY
 
 const MIB: u64 = 1 << 20;
 
-/// `VICTORY_RESIDENCY=1`: the memory budgets of this module (off by default).
+/// `VICTORY_RESIDENCY=1`: the memory budgets of this module. Unset, they are on
+/// for a PC with 32 GiB of RAM or less (the title's memory and our copies of it
+/// do not fit twice there, and the PC has no unified memory as the console
+/// has), off above; `VICTORY_RESIDENCY=0` turns them off anywhere.
 pub(crate) fn on() -> bool {
     static ON: OnceLock<bool> = OnceLock::new();
-    *ON.get_or_init(|| std::env::var_os("VICTORY_RESIDENCY").is_some_and(|v| v == "1"))
+    *ON.get_or_init(|| match std::env::var_os("VICTORY_RESIDENCY") {
+        Some(v) => v == "1",
+        None => memory_status().is_some_and(|s| s.ullTotalPhys <= 32 * GIB),
+    })
 }
 const GIB: u64 = 1 << 30;
 static PRESSURED: AtomicBool = AtomicBool::new(false);
