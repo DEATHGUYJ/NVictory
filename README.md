@@ -1,3 +1,31 @@
+# NVictory
+
+**NVictory is [DEATHGUYJ](https://github.com/DEATHGUYJ)'s NVIDIA build, set up for an RTX 3080 12 GB,
+a Ryzen 5 5600T (6 cores, 12 threads) and 32 GB of RAM.** Its `combined` branch is
+[trustno1-coder/VIctory-NVIDIA](https://github.com/trustno1-coder/VIctory-NVIDIA) (on foxhound), with
+NVictory's own additions on top. Everything below this section is that fork's README, kept as it is.
+
+What NVictory adds:
+
+- **Driver watch** (`crates/victory-gpu/src/drvwatch.rs`, from
+  [uiliannn/VItoriaBr](https://github.com/uiliannn/VItoriaBr)): NVIDIA's event-log errors (event 153)
+  are counted and logged; the first one switches the indirect-window path (`VICTORY_INDIRECT_WINDOW`,
+  on in this launcher) off for the rest of the run. `VICTORY_DRIVER_WATCH=0` turns the watch off.
+- **Join parts follow the CPU**: on fewer than 16 threads `play-foxhound.ps1` uses a third of them
+  (4 on the 5600T) instead of 8. `-More @{VICTORY_JOIN_PARTS='8'}` puts it back.
+- **`scripts\test-run.ps1`**: plays for a set time (5 minutes by default), closes the game, and prints
+  the log lines to send back. See [docs/testing-and-running.md](docs/testing-and-running.md).
+- **Ready builds**: every push builds `victory.exe` (release and diag) on GitHub. Actions tab, newest
+  **Build** run, Artifacts.
+- **CI** on this branch, with a check of the PowerShell scripts.
+
+On this PC, expect less than the 26-30 frames a second measured below: that was a Ryzen 7 9800X3D
+with 64 GB, and the frame is limited by one CPU thread. The 3080 has DLSS upscaling; frame generation
+on it is AMD's FSR 3 at 2x (DLSS frame generation needs an RTX 40). With 32 GB, set a page file of
+32-48 GB. None of NVictory's additions has been run on this PC yet.
+
+---
+
 # VIctory on NVIDIA
 
 ## Frame generation: what your card supports
@@ -317,6 +345,11 @@ A tree of other people's work with a little on top; the history is kept.
   and the others foxhound's README names.
 - Everyone who sent pull requests to this fork before the move; that work is
   in the history, on the branch that was `main` until then.
+- **[trustno1-coder/VIctory-NVIDIA](https://github.com/trustno1-coder/VIctory-NVIDIA)** and the
+  people whose pull requests it carries: this tree, which NVictory's `combined` branch is built on.
+- **[uiliannn/VItoriaBr](https://github.com/uiliannn/VItoriaBr)**: the display-driver event-log watch.
+- NVictory's own additions are kept by [DEATHGUYJ](https://github.com/DEATHGUYJ); its earlier work
+  is on the `a-publier` branch.
 - NVIDIA Streamline, DLSS and Reflex are NVIDIA's; they are loaded at run time
   from a folder you supply.
 - Much of this fork's code was written with
