@@ -245,8 +245,8 @@ In short; the reasons and the measurements are in [docs/findings.md](docs/findin
 
 ## Credits
 
-NVictory is maintained by **[DEATHGUYJ](https://github.com/DEATHGUYJ)** (Alex). It is a tree of
-other people's work with more on top. The history is kept, and
+NVictory is maintained by **[DEATHGUYJ](https://github.com/DEATHGUYJ)**. It is a tree of other
+people's work with more on top. The history is kept, and
 commits taken from elsewhere name the commit and its author.
 
 - **[VIctory](https://github.com/Marvisak/VIctory)** by Marvisak and its
