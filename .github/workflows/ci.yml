@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main, a-publier]
+    branches: [main, a-publier, NVictory]
   workflow_dispatch:
 
 permissions:
