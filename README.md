@@ -1,4 +1,6 @@
-# VIctory on an RTX 3080 12 GB
+# NVictory
+
+VIctory for NVIDIA, set up for an RTX 3080 12 GB.
 
 **Quick links:** [testing and running a game](docs/testing-and-running.md) · [replaying a frame](docs/replay.md) · [findings](docs/findings.md) · [architecture](docs/architecture.md)
 
@@ -71,8 +73,8 @@ title's private memory will not all fit, and without it the run ends in an
 out-of-memory error rather than a slow frame.
 
 ```powershell
-git clone https://github.com/DEATHGUYJ/victory-belobug-nvidia
-cd victory-belobug-nvidia
+git clone https://github.com/DEATHGUYJ/NVictory
+cd NVictory
 copy victory.example.toml victory.toml      # then set game_dir, outside this folder
 cargo build --locked --profile diag -p victory --features diagnostics
 target\diag\victory.exe shaders <the shader archives>   # every shader translated, minutes

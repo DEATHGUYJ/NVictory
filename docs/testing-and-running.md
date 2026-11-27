@@ -1,4 +1,4 @@
-# Testing and running a game
+# Testing and running a game (NVictory)
 
 For this fork on its target PC: Windows 10/11 x64, RTX 3080 12 GB, Ryzen 5 5600T,
 32 GB RAM. The fork is NVIDIA-only. It has **not been run on that PC yet**, so
