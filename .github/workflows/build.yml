@@ -1,0 +1,65 @@
+name: Build
+
+# Builds victory.exe (diag and release) and attaches a ready-to-run folder to
+# the run, so testing does not need Rust or the MSVC tools on the PC.
+# Download: the repository's Actions tab, the newest "Build" run, Artifacts.
+
+on:
+  push:
+    branches: [a-publier]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  package:
+    name: Build and package
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+      # The version and components pinned in rust-toolchain.toml.
+      - run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      - name: Build diag (counters and log lines the testing guide asks for)
+        run: cargo build --locked --profile diag -p victory --features diagnostics
+      - name: Build release
+        run: cargo build --locked --release -p victory
+      - name: Stage the folder
+        shell: pwsh
+        run: |
+          $out = 'NVictory'
+          New-Item -ItemType Directory -Force "$out/target/diag", "$out/target/release", "$out/docs" | Out-Null
+          Copy-Item target/diag/victory.exe "$out/target/diag/"
+          if (Test-Path target/diag/victory.pdb) { Copy-Item target/diag/victory.pdb "$out/target/diag/" }
+          Copy-Item target/release/victory.exe "$out/target/release/"
+          Copy-Item -Recurse scripts "$out/"
+          Copy-Item victory.example.toml, README.md, LICENSE "$out/"
+          Copy-Item docs/testing-and-running.md, docs/replay.md "$out/docs/"
+          $commit = '${{ github.sha }}'
+          @(
+            "NVictory build of commit $commit ($(Get-Date -Format 'yyyy-MM-dd HH:mm') UTC)",
+            "Source: https://github.com/${{ github.repository }}/tree/$commit (GPL-3.0-or-later, see LICENSE)",
+            '',
+            'Unzip anywhere outside the game folder, then from this folder:',
+            '  copy victory.example.toml victory.toml   (set game_dir)',
+            '  target\diag\victory.exe shaders <the shader archives of your copy>',
+            '  target\diag\victory.exe warm --used',
+            '  scripts\play.ps1 -Exe <path of your copy''s executable>',
+            'See docs\testing-and-running.md.'
+          ) | Set-Content -Encoding ascii "$out/BUILD.txt"
+          Get-ChildItem -Recurse $out | Select-Object FullName, Length | Format-Table -AutoSize | Out-String -Width 200 | Write-Host
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NVictory-${{ github.sha }}
+          path: NVictory
+          retention-days: 30
+          if-no-files-found: error

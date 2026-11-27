@@ -63,7 +63,9 @@ about 1 ms a frame, they would not.
 
 ## How to run it
 
-You need Windows 10/11 x64, a CPU with AVX2 (the 5600T has it), the MSVC build
+A ready-built `victory.exe` (diag and release) is attached to every **Build** run in the Actions
+tab; see [the testing guide](docs/testing-and-running.md#2-build-or-download-a-ready-build).
+To build it yourself you need Windows 10/11 x64, a CPU with AVX2 (the 5600T has it), the MSVC build
 tools, Rust (the toolchain is pinned), the current NVIDIA driver, and your own
 dump of the title.
 

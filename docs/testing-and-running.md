@@ -18,7 +18,21 @@ no game files and this guide does not cover how to get them.
 | Free RAM | Close the browser and other programs. Run from a normal window, not as administrator. |
 | Config | `copy victory.example.toml victory.toml`, then set `game_dir` to a folder **outside** this repository. |
 
-## 2. Build
+## 2. Build (or download a ready build)
+
+**Without building.** Every push to `a-publier` builds both versions on GitHub. Open the repository's
+**Actions** tab, pick the newest **Build** run, and download `NVictory-<commit>` under **Artifacts**
+(you must be signed in; kept 30 days). Unzip it **outside** the game folder. It has the same layout
+as the repository (`target\diag\victory.exe`, `target\release\victory.exe`, `scripts`, the docs),
+so every command below works from the unzipped folder. Then, once, in PowerShell in that folder:
+
+```powershell
+Get-ChildItem -Recurse | Unblock-File     # Windows marks downloaded scripts as blocked
+```
+
+You do not need Rust or the MSVC tools for this; you still need them for section 3.
+
+**Building it yourself.**
 
 Two builds exist. Use `diag` for everything in this guide: it has the counters
 and log lines the notes ask for. Use `release` only when you want the fastest
