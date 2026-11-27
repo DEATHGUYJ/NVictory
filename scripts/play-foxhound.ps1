@@ -132,6 +132,10 @@ foreach ($k in $menu.Keys) {
     if ($k -like 'VICTORY_MENU_*') { continue }
     if ($menu[$k]) { $settings[$k] = $menu[$k] } else { $settings.Remove($k) }
 }
+# NVictory: 8 join parts were measured on a 16-thread CPU. On fewer threads (the Ryzen 5 5600T has 12), one
+# third of them, 2 to 8, leaves threads for the title's own. -More @{VICTORY_JOIN_PARTS='8'} puts it back.
+$threads = [Environment]::ProcessorCount
+if ($threads -lt 16) { $settings.VICTORY_JOIN_PARTS = [string][Math]::Max(2, [Math]::Min(8, [int][Math]::Floor($threads / 3))) }
 foreach ($k in $More.Keys) { $settings[$k] = $More[$k] }
 $console = if ($SeriesS) { 'series-s' } else { 'series-x' }
 # For the menu: what it shows as the current choices, where it saves, and how it starts the game again
