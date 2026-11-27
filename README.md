@@ -243,7 +243,8 @@ In short; the reasons and the measurements are in [docs/findings.md](docs/findin
 
 ## Credits
 
-This is a tree of other people's work with more on top. The history is kept, and
+NVictory is maintained by **[DEATHGUYJ](https://github.com/DEATHGUYJ)** (Alex). It is a tree of
+other people's work with more on top. The history is kept, and
 commits taken from elsewhere name the commit and its author.
 
 - **[VIctory](https://github.com/Marvisak/VIctory)** by Marvisak and its
@@ -260,6 +261,15 @@ commits taken from elsewhere name the commit and its author.
   every view of a page (with Spexivus, joroyt and tightfall), and Joshua Odom's
   reads into title memory.
 - **Geckomacabre** and **cxy0072019-sketch**: the texture read-back.
+- **[avatarmanz/VIctory-7900XTX](https://github.com/avatarmanz/VIctory-7900XTX)**: the commits
+  merged on 2026-11-27, including the constant-buffer ordering fix for tree and lamp flicker
+  (`VICTORY_PORT_CONSTANTS_ORDER`).
+- **[uiliannn/VItoriaBr](https://github.com/uiliannn/VItoriaBr)**: the display-driver event-log
+  watch (`drvwatch.rs`).
+- **[DoubleGhosty/cool_fox](https://github.com/DoubleGhosty/cool_fox)**: the NVIDIA findings behind
+  turning `VICTORY_THIN` and `VICTORY_JOIN_PARTS` off by default; no code of it is here.
+- **[Kelvaroq](https://github.com/fablinoo/kelvaroq)** (Stellarr Studio) was read for its NVIDIA
+  and memory work; no code of it is here.
 - **[XCL](https://github.com/ivall/xcl)** (GPL-2.0-only) was read for how the same
   title behaves under another layer; no code of it is here.
 - This fork's changes were made with [Claude Code](https://claude.com/claude-code).
