@@ -101,6 +101,7 @@ pub(crate) struct ResourceDesc {
 #[cfg(windows)]
 impl ResourceDesc {
     /// The texture of this one's levels from `base` on.
+    #[allow(clippy::wrong_self_convention)]
     fn from_level(&self, base: u32) -> ResourceDesc {
         let mut d = *self;
         if base > 0 {
@@ -3192,8 +3193,9 @@ static PLACED_RAW: std::sync::Mutex<std::collections::BTreeSet<(u64, [u32; 14])>
 #[cfg(windows)]
 static PLACED_TWINS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
-/// See [`PLACED_TWINS`].
+/// See [`PLACED_TWINS`]. Read by the diagnostics build's counters.
 #[cfg(windows)]
+#[cfg_attr(not(feature = "diagnostics"), allow(dead_code))]
 pub(crate) fn placed_filler_twins() -> u64 {
     PLACED_TWINS.load(std::sync::atomic::Ordering::Relaxed)
 }

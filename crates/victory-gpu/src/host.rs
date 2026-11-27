@@ -2772,6 +2772,8 @@ struct Flight {
 }
 
 /// One thing in the line of what waits for the card, in order.
+// Boxing the flight would add an allocation per submission on the hot path.
+#[allow(clippy::large_enum_variant)]
 enum Late {
     Run(Flight),
     /// A bottom-of-pipe write of the flight before it: address, what, bytes.
@@ -3838,6 +3840,8 @@ fn late_line(frames: f64) {
 pub(crate) mod aside;
 pub(crate) mod awake;
 mod card_steps;
+// Used by the diagnostics build's list notes.
+#[cfg_attr(not(feature = "diagnostics"), allow(dead_code))]
 pub(crate) mod indirects;
 mod font;
 mod menu;
@@ -8245,7 +8249,8 @@ enum Touch {
     Refresh(usize, usize, usize),
     /// The copy is given to shaders.
     Write(usize),
-    /// Title memory is written.
+    /// Title memory is written (made by the tests' steps only).
+    #[cfg_attr(not(test), allow(dead_code))]
     Title,
     Nothing,
     /// Another part of the submission begins.
